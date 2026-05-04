@@ -16,7 +16,7 @@
     "startup": "/usr/bin/entrypoint-ptero.sh run",
     "config": {
         "files": "{}",
-        "startup": "{\"done\": \"UrBackup\"}",
+        "startup": "{\"done\": \"Server started up successfully\"}",
         "logs": "{}",
         "stop": "^C"
     },

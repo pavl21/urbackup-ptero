@@ -29,7 +29,7 @@ CONF
 
 echo "[UrBackup] Web: Port ${HTTP_PORT} | Clients: Port ${INTERNET_PORT} | Log: ${LOGLEVEL}"
 
-# urbackupsrv mit Filter starten — PID merken für Signal-Weiterleitung
+# urbackupsrv starten — harmlose Meldungen filtern, PID für Shutdown merken
 urbackupsrv "$@" --config "${CONFIG_FILE}" 2>&1 | \
   grep --line-buffered -Ev \
     "^Raising nice-ceiling|^Cannot become root user|WARNING: Upgrading database to version [0-9]+" | \
@@ -40,13 +40,27 @@ urbackupsrv "$@" --config "${CONFIG_FILE}" 2>&1 | \
 
 FILTER_PID=$!
 
-# SIGINT/SIGTERM → urbackupsrv beenden (graceful)
+# urbackupsrv PID via /proc ermitteln (kein pgrep nötig)
+_get_urbackup_pid() {
+    for f in /proc/[0-9]*/cmdline; do
+        if grep -q "urbackupsrv" "$f" 2>/dev/null; then
+            echo "${f%/cmdline}" | tr -d '/proc/'
+            return
+        fi
+    done
+}
+
 _shutdown() {
-    URBACKUP_PID=$(pgrep -x urbackupsrv 2>/dev/null | head -1)
-    if [ -n "$URBACKUP_PID" ]; then
-        echo "[UrBackup] Wird beendet..."
-        kill -SIGTERM "$URBACKUP_PID"
-        wait "$URBACKUP_PID" 2>/dev/null || true
+    local pid
+    pid=$(_get_urbackup_pid)
+    if [ -n "$pid" ]; then
+        echo "[UrBackup] Wird beendet (PID ${pid})..."
+        kill -SIGTERM "$pid" 2>/dev/null || true
+        # Warten bis Prozess beendet
+        for i in $(seq 1 15); do
+            kill -0 "$pid" 2>/dev/null || break
+            sleep 1
+        done
     fi
     wait "$FILTER_PID" 2>/dev/null || true
     echo "[UrBackup] Beendet."
