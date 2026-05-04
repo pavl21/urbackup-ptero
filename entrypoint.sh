@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -eo pipefail
 
 HTTP_PORT="${HTTP_PORT:-55414}"
 INTERNET_PORT="${INTERNET_PORT:-55415}"
@@ -11,25 +11,20 @@ TZ="${TZ:-Europe/Berlin}"
 echo "============================================"
 echo "  UrBackup Server - Pterodactyl Edition"
 echo "============================================"
-echo ""
 echo "  Web-Oberflaeche : http://SERVER-IP:${HTTP_PORT}"
 echo "  Backup-Clients  : Port ${INTERNET_PORT}/TCP"
-echo "  LAN-Erkennung   : Port 35623/UDP (falls zugewiesen)"
-echo ""
+echo "  LAN-Erkennung   : Port 35623/UDP (optional)"
 echo "  Standard-Login  : admin / admin"
-echo "  WICHTIG: Passwort nach erstem Login aendern!"
-echo ""
 echo "  Backup-Pfad     : ${BACKUP_PATH}"
 echo "  Zeitzone        : ${TZ}"
-echo "  Log-Level       : ${LOGLEVEL}"
 echo "============================================"
 echo ""
 
-# Backup-Verzeichnis anlegen (Pterodactyl mounted /home/container automatisch)
+# Backup-Verzeichnis anlegen (Pterodactyl mounted /home/container)
 mkdir -p "$BACKUP_PATH" 2>/dev/null || true
 echo -n "$BACKUP_PATH" > /var/urbackup/backupfolder
 
-# Config in schreibbares Volume schreiben (/var/urbackup ist Docker-Volume)
+# Port-Konfiguration ins schreibbare Volume schreiben
 CONFIG_FILE="/var/urbackup/urbackupsrv.conf"
 cat > "${CONFIG_FILE}" << CONF
 FASTCGI_PORT=${FASTCGI_PORT}
@@ -45,10 +40,14 @@ ALLOW_USER_ENUMERATION=true
 USER=urbackup
 CONF
 
-echo "[INFO] Konfiguration geschrieben nach ${CONFIG_FILE}"
-echo "[INFO]   HTTP_PORT=${HTTP_PORT}"
-echo "[INFO]   INTERNET_PORT=${INTERNET_PORT}"
-echo "[INFO] Starte UrBackup-Server..."
+echo "[START] HTTP_PORT=${HTTP_PORT} | INTERNET_PORT=${INTERNET_PORT} | LOGLEVEL=${LOGLEVEL}"
 echo ""
 
-exec urbackupsrv "$@" --config "${CONFIG_FILE}"
+# urbackupsrv starten — bekannte harmlose Meldungen herausfiltern
+urbackupsrv "$@" --config "${CONFIG_FILE}" 2>&1 | \
+  grep --line-buffered -Ev \
+    "^Raising nice-ceiling|^Cannot become root user|WARNING: Upgrading database to version [0-9]+" | \
+  sed --unbuffered \
+    -e 's/WARNING: Upgrading\.\.\./[INFO] Datenbank-Migration wird durchgefuehrt.../' \
+    -e 's/WARNING: Done\./[INFO] Datenbank-Migration abgeschlossen./' \
+    -e 's/WARNING: Creating file entry index.*/[INFO] Datei-Index wird erstellt.../'
