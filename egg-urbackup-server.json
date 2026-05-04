@@ -1,0 +1,82 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-05-04T20:00:00+02:00",
+    "name": "UrBackup Server",
+    "author": "schwarzpaul123@gmail.com",
+    "description": "UrBackup Server fuer Pterodactyl Wings.\n\nPorts (als Allocations zuweisen):\n- Primaer-Port → HTTP_PORT (Web-Interface)\n- Sekundaer-Port → INTERNET_PORT (Backup-Clients)\n\nStandard-Login: admin / admin — nach erstem Login aendern!\n\nImage: ghcr.io/pavl21/urbackup-ptero:latest",
+    "features": [],
+    "docker_images": {
+        "UrBackup Server (Pterodactyl)": "ghcr.io/pavl21/urbackup-ptero:latest"
+    },
+    "file_denylist": [],
+    "startup": "/usr/bin/entrypoint-ptero.sh run",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"UrBackup-Server\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\necho '=== UrBackup Server Installation ==='\necho 'Image: ghcr.io/pavl21/urbackup-ptero:latest'\necho ''\nmkdir -p /home/container/backups\nmkdir -p /home/container/data\necho 'Verzeichnisse angelegt:'\nls -la /home/container/\necho ''\necho 'Ports die als Allocations benoetigt werden:'\necho '  HTTP_PORT     → Web-Interface (Primaer-Allocation empfohlen)'\necho '  INTERNET_PORT → Backup-Client-Verbindungen (Sekundaer-Allocation)'\necho ''\necho 'Standard-Login: admin / admin'\necho 'Installation abgeschlossen.'",
+            "container": "ghcr.io/ptero-eggs/installers:debian",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Web-Interface Port",
+            "description": "Port fuer die UrBackup Web-Oberflaeche. Muss mit der primaeren Allocation uebereinstimmen. Standardwert {{SERVER_PORT}} verwendet automatisch den zugewiesenen Primaer-Port.",
+            "env_variable": "HTTP_PORT",
+            "default_value": "{{SERVER_PORT}}",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1024|max:65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Backup-Client Port",
+            "description": "Port fuer eingehende Backup-Client-Verbindungen (Internet-Backups). Muss als separate Allocation zugewiesen sein.",
+            "env_variable": "INTERNET_PORT",
+            "default_value": "55415",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1024|max:65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Backup-Pfad",
+            "description": "Verzeichnis in dem UrBackup die Backups speichert. Standardmaessig im Container-Verzeichnis.",
+            "env_variable": "BACKUP_PATH",
+            "default_value": "/home/container/backups",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "Zeitzone",
+            "description": "Zeitzone fuer korrekte Backup-Zeitplanung. Beispiele: Europe/Berlin, UTC, America/New_York.",
+            "env_variable": "TZ",
+            "default_value": "Europe/Berlin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Log-Level",
+            "description": "Detailtiefe der Server-Logs. Empfehlung: warn fuer normalen Betrieb, debug fuer Fehlersuche.",
+            "env_variable": "LOGLEVEL",
+            "default_value": "warn",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:debug,info,warn,error",
+            "field_type": "text"
+        }
+    ]
+}
