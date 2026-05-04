@@ -25,12 +25,13 @@ echo "  Log-Level       : ${LOGLEVEL}"
 echo "============================================"
 echo ""
 
-# Backup-Verzeichnis anlegen
-mkdir -p "$BACKUP_PATH"
+# Backup-Verzeichnis anlegen (Pterodactyl mounted /home/container automatisch)
+mkdir -p "$BACKUP_PATH" 2>/dev/null || true
 echo -n "$BACKUP_PATH" > /var/urbackup/backupfolder
 
-# Port-Konfiguration aus Env-Variablen schreiben
-cat > /etc/default/urbackupsrv << CONF
+# Config in schreibbares Volume schreiben (/var/urbackup ist Docker-Volume)
+CONFIG_FILE="/var/urbackup/urbackupsrv.conf"
+cat > "${CONFIG_FILE}" << CONF
 FASTCGI_PORT=${FASTCGI_PORT}
 HTTP_SERVER=true
 HTTP_PORT=${HTTP_PORT}
@@ -44,10 +45,10 @@ ALLOW_USER_ENUMERATION=true
 USER=urbackup
 CONF
 
-echo "[INFO] Konfiguration geschrieben"
+echo "[INFO] Konfiguration geschrieben nach ${CONFIG_FILE}"
 echo "[INFO]   HTTP_PORT=${HTTP_PORT}"
 echo "[INFO]   INTERNET_PORT=${INTERNET_PORT}"
 echo "[INFO] Starte UrBackup-Server..."
 echo ""
 
-exec urbackupsrv "$@" --config /etc/default/urbackupsrv
+exec urbackupsrv "$@" --config "${CONFIG_FILE}"

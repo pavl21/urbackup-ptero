@@ -8,7 +8,6 @@ LABEL description="UrBackup Server kompatibel mit Pterodactyl Wings (uid=999)"
 # Web-Assets lesbar fuer uid=999
 RUN usermod -u 999 -o urbackup && \
     groupmod -g 989 -o urbackup && \
-    chmod 666 /etc/default/urbackupsrv && \
     chmod -R a+rX /usr/share/urbackup && \
     chown -R urbackup:urbackup /var/urbackup /backups
 
